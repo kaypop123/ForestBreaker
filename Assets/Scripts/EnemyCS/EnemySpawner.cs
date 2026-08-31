@@ -1,12 +1,13 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 
 [System.Serializable]
 public class EnemyTypeData
 {
-    public GameObject prefab;    
-    public int unlockStage = 1;    // �� ������������ ��������
+    public GameObject prefab;
+    public int unlockStage = 1;
     public int initialPoolSize = 5;
 }
 
@@ -19,10 +20,14 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private Transform poolParent;
     [SerializeField] private float spacing = 2f;
 
+    // Dictionary 순회 가비지를 줄이기 위해 Key List 별도 보관 또는 캐시
     private Dictionary<GameObject, List<EnemyState>> enemyPools = new Dictionary<GameObject, List<EnemyState>>();
+    private List<EnemyTypeData> cachedAvailableTypes = new List<EnemyTypeData>(); // GC 방지용 캐싱 리스트
+
     private int aliveEnemyCount = 0;
 
     public Action OnAllEnemiesCleared;
+    private static readonly ProfilerMarker s_SpawnMarker = new ProfilerMarker("[MY_SPAWN] MonsterWave");
 
     private void Awake()
     {
@@ -33,69 +38,91 @@ public class EnemySpawner : MonoBehaviour
     {
         enemyPools.Clear();
 
-        foreach (EnemyTypeData typeData in enemyTypes)
+        for (int t = 0; t < enemyTypes.Count; t++)
         {
+            EnemyTypeData typeData = enemyTypes[t];
             if (typeData.prefab == null)
                 continue;
 
             if (!enemyPools.ContainsKey(typeData.prefab))
-                enemyPools.Add(typeData.prefab, new List<EnemyState>());
+            {
+                // List Capacity를 미리 넉넉하게 지정하여 재할당 방지
+                enemyPools.Add(typeData.prefab, new List<EnemyState>(typeData.initialPoolSize * 2));
+            }
 
             for (int i = 0; i < typeData.initialPoolSize; i++)
             {
-                GameObject obj = Instantiate(typeData.prefab, poolParent);
-                obj.SetActive(false);
-
-                EnemyState enemyState = obj.GetComponent<EnemyState>();
-                enemyPools[typeData.prefab].Add(enemyState);
+                CreateNewEnemyToPool(typeData.prefab);
             }
         }
     }
 
+    private EnemyState CreateNewEnemyToPool(GameObject prefab)
+    {
+        GameObject obj = Instantiate(prefab, poolParent);
+        obj.SetActive(false);
+
+        EnemyState enemyState = obj.GetComponent<EnemyState>();
+        enemyPools[prefab].Add(enemyState);
+        return enemyState;
+    }
+
     public void StartNextStage(int stageNumber, int enemyCount)
     {
-        DeactivateAllEnemies();
-        aliveEnemyCount = 0;
-
-        for (int i = 0; i < enemyCount; i++)
+        using (s_SpawnMarker.Auto())
         {
-            GameObject selectedPrefab = GetEnemyPrefabForStage(stageNumber, i, enemyCount);
-            SpawnEnemyFromPool(selectedPrefab, i);
+            DeactivateAllEnemies();
+            aliveEnemyCount = 0;
+
+            for (int i = 0; i < enemyCount; i++)
+            {
+                GameObject selectedPrefab = GetEnemyPrefabForStage(stageNumber);
+                SpawnEnemyFromPool(selectedPrefab, i);
+            }
         }
+#if UNITY_EDITOR
+        Debug.Break();
+#endif
     }
 
     private void DeactivateAllEnemies()
     {
-        foreach (var pool in enemyPools.Values)
+        // Dictionary.Values 직접 foreach 대신 Key 컬렉션 기반 for 순회로 가비지 방지
+        for (int t = 0; t < enemyTypes.Count; t++)
         {
-            foreach (EnemyState enemy in pool)
+            GameObject prefab = enemyTypes[t].prefab;
+            if (prefab == null || !enemyPools.TryGetValue(prefab, out List<EnemyState> pool))
+                continue;
+
+            for (int i = 0; i < pool.Count; i++)
             {
-                if (enemy != null && enemy.gameObject.activeInHierarchy)
+                EnemyState enemy = pool[i];
+                if (enemy != null && enemy.gameObject.activeSelf)
                 {
                     enemy.gameObject.SetActive(false);
                 }
             }
         }
     }
-    private GameObject GetEnemyPrefabForStage(int stageNumber, int spawnIndex, int totalEnemyCount)
-    {
-        List<EnemyTypeData> availableTypes = new List<EnemyTypeData>();
 
-        foreach (EnemyTypeData typeData in enemyTypes)
+    private GameObject GetEnemyPrefabForStage(int stageNumber)
+    {
+        cachedAvailableTypes.Clear(); // new List 대신 재사용
+
+        for (int i = 0; i < enemyTypes.Count; i++)
         {
+            EnemyTypeData typeData = enemyTypes[i];
             if (typeData.prefab != null && typeData.unlockStage <= stageNumber)
             {
-                availableTypes.Add(typeData);
+                cachedAvailableTypes.Add(typeData);
             }
         }
 
-        if (availableTypes.Count == 0)
-        {
+        if (cachedAvailableTypes.Count == 0)
             return null;
-        }
 
-        int randomIndex = UnityEngine.Random.Range(0, availableTypes.Count);
-        return availableTypes[randomIndex].prefab;
+        int randomIndex = UnityEngine.Random.Range(0, cachedAvailableTypes.Count);
+        return cachedAvailableTypes[randomIndex].prefab;
     }
 
     private void SpawnEnemyFromPool(GameObject prefab, int index)
@@ -105,17 +132,13 @@ public class EnemySpawner : MonoBehaviour
 
         EnemyState enemy = GetInactiveEnemyFromPool(prefab);
 
+        // 풀에 남은 게 없으면 추가 생성
         if (enemy == null)
         {
-            GameObject newObj = Instantiate(prefab, poolParent);
-            newObj.SetActive(false);
-
-            enemy = newObj.GetComponent<EnemyState>();
-
             if (!enemyPools.ContainsKey(prefab))
-                enemyPools.Add(prefab, new List<EnemyState>());
+                enemyPools.Add(prefab, new List<EnemyState>(10));
 
-            enemyPools[prefab].Add(enemy);
+            enemy = CreateNewEnemyToPool(prefab);
         }
 
         SpawnEnemy(enemy, index);
@@ -123,12 +146,13 @@ public class EnemySpawner : MonoBehaviour
 
     private EnemyState GetInactiveEnemyFromPool(GameObject prefab)
     {
-        if (!enemyPools.ContainsKey(prefab))
+        if (!enemyPools.TryGetValue(prefab, out List<EnemyState> pool))
             return null;
 
-        foreach (EnemyState enemy in enemyPools[prefab])
+        for (int i = 0; i < pool.Count; i++)
         {
-            if (enemy != null && !enemy.gameObject.activeInHierarchy)
+            EnemyState enemy = pool[i];
+            if (enemy != null && !enemy.gameObject.activeSelf)
             {
                 return enemy;
             }
@@ -139,7 +163,7 @@ public class EnemySpawner : MonoBehaviour
 
     private void SpawnEnemy(EnemyState enemy, int index)
     {
-        Vector3 spawnPos = transform.position + Vector3.right * spacing * index;
+        Vector3 spawnPos = transform.position + Vector3.right * (spacing * index);
         enemy.transform.position = spawnPos;
         enemy.gameObject.SetActive(true);
         aliveEnemyCount++;
@@ -154,7 +178,6 @@ public class EnemySpawner : MonoBehaviour
 
         if (aliveEnemyCount == 0)
         {
-            Debug.Log("��� �� óġ �Ϸ�");
             OnAllEnemiesCleared?.Invoke();
         }
     }
