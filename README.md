@@ -27,7 +27,7 @@ ForestBreaker는 다수의 적이 등장하는 전투 상황에서
 
 > ForestBreaker의 실제 게임 플레이 영상입니다.
 
-https://github.com/user-attachments/assets/(https://drive.google.com/file/d/1_geBa20EXmybbaAaOl_o6gjpc58Lhkc6/view?usp=sharing)
+https://drive.google.com/file/d/1_geBa20EXmybbaAaOl_o6gjpc58Lhkc6/view?usp=sharing
 
 ---
 
