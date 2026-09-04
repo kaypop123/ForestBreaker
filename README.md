@@ -44,58 +44,108 @@ ForestBreaker는 다수의 적이 등장하는 전투 상황에서
 
 ## 🔎 주요 구현 코드
 
-제가 직접 설계 및 구현한 코드 중 핵심 시스템입니다.
+제가 직접 설계 및 구현한 코드 중 핵심 시스템을 확인할 수 있습니다.
 
 ### 👾 Enemy Spawner & Object Pooling
 
-📄 [EnemySpawner.cs](링크입력)
+📄 [EnemySpawner.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/EnemyCS/EnemySpawner.cs)
 
 - Enemy Prefab별 독립적인 Object Pool 관리
 - 비활성화된 Enemy 객체를 우선 탐색하여 재사용
 - 사용 가능한 객체가 없을 경우에만 새로운 객체 생성
 - Pool 부족 시 자동으로 확장되는 동적 Object Pooling 구조
-- Enemy 사망 후 Destroy하지 않고 Pool로 반환
+- Enemy 사망 후 Pool로 반환하여 재사용
 
 ---
 
 ### ⚔️ 플레이어 전투 시스템
 
-📄 [PlayerAttack.cs](링크입력)
+📄 [PlayerCombatController.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerCombatController.cs)
 
-- 근접 공격 처리
-- 공격 범위 기반 Enemy 탐색
-- `IDamageable` 인터페이스 기반 피격 처리
-- 플레이어 공격과 Enemy 피격 시스템 간 의존성 감소
+📄 [PlayerAttackTrigger.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerAttackTrigger.cs)
 
----
-
-### 🏃 플레이어 이동
-
-📄 [PlayerMovement.cs](링크입력)
-
-- `Rigidbody2D` 기반 플레이어 이동
-- 이동 및 방향 전환 처리
-- 전투 상태와 연계한 캐릭터 행동 제어
+- 플레이어 전투 상태 및 공격 처리
+- 공격 판정과 실제 전투 로직의 역할 분리
+- Enemy 피격 시스템과 연계
 
 ---
 
-### 🎁 아이템 시스템
+### 🏃 플레이어 컨트롤
 
-📄 [Item System](링크입력)
+📄 [PlayerController.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerController.cs)
 
-- Enemy 사망 시 아이템 드롭
-- 플레이어 아이템 획득 처리
-- 전투 보상과 스테이지 진행 구조 연계
+📄 [PlayerInputHandler.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerInputHandler.cs)
+
+- 플레이어 이동 및 행동 제어
+- 입력 처리와 캐릭터 행동 로직 분리
+- 플레이어 상태에 따른 행동 제어
 
 ---
 
-### 🗺️ 스테이지 시스템
+### 💨 대시 시스템
 
-📄 [Stage System](링크입력)
+📄 [PlayerDashController.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerDashController.cs)
 
-- Enemy 사망 이벤트 기반 생존 Enemy 수 관리
-- 모든 Enemy 처치 시 다음 스테이지 진행
-- 스테이지 진행에 따라 등장 Enemy 종류 및 수량 증가
+- 플레이어 대시 행동 제어
+- 전투 및 이동 상태와 연계한 대시 처리
+
+---
+
+### ⚡ 플레이어 스킬 시스템
+
+📄 [PlayerSkillController.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerSkillController.cs)
+
+📄 [SlashWave.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/SlashWave.cs)
+
+- 플레이어 스킬 사용 및 상태 관리
+- SlashWave 스킬 동작 구현
+- 전투 시스템과 스킬 로직 연계
+
+---
+
+### 🛡️ 방어 시스템
+
+📄 [PlayerBlockingController.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerBlockingController.cs)
+
+- 플레이어 방어 상태 관리
+- 전투 상태와 연계한 방어 행동 처리
+
+---
+
+### 🔄 플레이어 상태 관리
+
+📄 [PlayerState.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/PlayerCS/PlayerState.cs)
+
+- 플레이어 행동 상태 관리
+- 이동 / 공격 / 스킬 등 플레이어 시스템 간 상태 공유
+
+---
+
+### 🗺️ Enemy 및 스테이지 진행
+
+📄 [EnemyState.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/EnemyCS/EnemyState.cs)
+
+📄 [StageFlowManager.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/EnemyCS/StageFlowManager.cs)
+
+📄 [StageManager.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/StageManager.cs)
+
+- Enemy 상태 및 사망 처리
+- Enemy 사망 이벤트 기반 스테이지 진행
+- 스테이지별 Enemy Spawn 흐름 관리
+
+---
+
+### 👹 보스 시스템
+
+📄 [BossCore.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/EnemyCS/BossCore.cs)
+
+📄 [BossAttack.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/EnemyCS/BossAttack.cs)
+
+📄 [BossSkill.cs](https://github.com/kaypop123/ForestBreaker/blob/main/Assets/Scripts/EnemyCS/BossSkill.cs)
+
+- 보스 핵심 행동 로직
+- 공격 및 스킬 기능 분리
+- 보스 전투 시스템 구성
 
 ---
 
