@@ -1,4 +1,4 @@
-# 🌲 ForestBreaker
+#  ForestBreaker
 
 > 다수의 적을 상대하며 근접 공격과 다양한 스킬을 활용해 전투를 진행하는  
 > **2D 횡스크롤 액션 게임**
@@ -21,6 +21,28 @@ ForestBreaker는 다수의 적이 등장하는 전투 상황에서
 
 특히 반복적인 Enemy 생성/삭제 과정에서 발생하는 비용을 개선하기 위해  
 **Prefab별 Object Pooling 시스템을 구현하고 Unity Profiler를 통해 적용 전후 성능을 직접 측정했습니다.**
+
+---
+## 🎥 게임 플레이 영상
+
+> ForestBreaker의 실제 게임 플레이 영상입니다.
+
+https://github.com/user-attachments/assets/(https://drive.google.com/file/d/1_geBa20EXmybbaAaOl_o6gjpc58Lhkc6/view?usp=sharing)
+
+---
+
+## 🎮 게임 장면
+
+<table width="100%">
+  <tr>
+    <td width="50%">
+      <img src="이미지주소1" width="100%">
+    </td>
+    <td width="50%">
+      <img src="이미지주소2" width="100%">
+    </td>
+  </tr>
+</table>
 
 ---
 
